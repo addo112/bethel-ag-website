@@ -1,110 +1,154 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+
+interface StudyData {
+  title: string;
+  date: string;
+  memoryVerse: string;
+  content: string;
+  pdfUrl?: string;
+}
 
 export default function Study() {
-  const [query, setQuery] = useState("");
-  const [chat, setChat] = useState<{role: 'user'|'ai', content: string}[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [queryText, setQueryText] = useState("");
+  const [chatHistory, setChatHistory] = useState<{role: 'user'|'ai', text: string}[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [study, setStudy] = useState<StudyData | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Mocked daily study from Sunday School Manual
-  const dailyStudy = {
-    title: "Lesson 1: The Character of God",
-    date: new Date().toLocaleDateString(),
-    memoryVerse: "God is spirit, and those who worship him must worship in spirit and truth. - John 4:24",
-    content: "Today's lesson focuses on understanding the divine nature of God as revealed in the scriptures. He is holy, loving, and just. As believers in Jesus Christ, we are called to emulate His character in our daily walk."
-  };
+  useEffect(() => {
+    async function fetchLatestStudy() {
+      try {
+        const q = query(collection(db, "studies"), orderBy("createdAt", "desc"), limit(1));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          setStudy(querySnapshot.docs[0].data() as StudyData);
+        }
+      } catch (error) {
+        console.error("Error fetching study:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLatestStudy();
+  }, []);
 
-  const handleSearch = async (e: React.FormEvent) => {
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory, isTyping]);
+
+  const handleAskAI = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
+    if (!queryText.trim()) return;
 
-    setChat(prev => [...prev, { role: 'user', content: query }]);
-    setLoading(true);
+    const userMessage = queryText;
+    setQueryText("");
+    setChatHistory(prev => [...prev, { role: 'user', text: userMessage }]);
+    setIsTyping(true);
 
     try {
-      const response = await fetch('/api/study', {
+      const res = await fetch('/api/study', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({ query: userMessage })
       });
-      const data = await response.json();
+      const data = await res.json();
       
-      setChat(prev => [...prev, { role: 'ai', content: data.answer }]);
+      setChatHistory(prev => [...prev, { role: 'ai', text: data.answer || "Sorry, I couldn't process that right now." }]);
     } catch (error) {
-      setChat(prev => [...prev, { role: 'ai', content: "Sorry, I am currently unable to process your request. Please try again later." }]);
+      setChatHistory(prev => [...prev, { role: 'ai', text: "Error connecting to AI assistant." }]);
     } finally {
-      setLoading(false);
-      setQuery("");
+      setIsTyping(false);
     }
   };
 
   return (
-    <div style={{ paddingTop: '80px', paddingBottom: '6rem' }}>
-      <div className="container">
-        <div style={{ textAlign: 'center', marginBottom: '4rem' }}>
-          <h1>Daily Bible Study & AI Assistant</h1>
-          <p style={{ color: 'var(--text-muted)', marginTop: '1rem' }}>Dig deeper into the Word of God to know Jesus Christ more.</p>
-        </div>
+    <div style={{ paddingTop: '80px', minHeight: '100vh', paddingBottom: '4rem' }}>
+      <div className="container animate-fade-in-up">
+        
+        <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
+          <h1 className="hero-title" style={{ fontSize: '2.5rem' }}>Daily Bible Study</h1>
+          <p className="hero-subtitle">Grow daily through the Word of God and our AI Assistant</p>
+        </header>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
           
-          {/* Daily Study Section */}
-          <div className="glass animate-fade-in-up" style={{ padding: '2.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem' }}>
-              <h2 style={{ fontSize: '1.5rem' }}>Daily Sunday School</h2>
-              <span style={{ color: 'var(--primary-blue)', fontWeight: 600, fontSize: '0.9rem' }}>{dailyStudy.date}</span>
-            </div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>{dailyStudy.title}</h3>
-            <div style={{ padding: '1rem', background: 'rgba(212, 175, 55, 0.1)', borderLeft: '4px solid var(--accent-gold)', marginBottom: '1.5rem', fontStyle: 'italic' }}>
-              {dailyStudy.memoryVerse}
-            </div>
-            <p style={{ color: 'var(--text-muted)', lineHeight: 1.8 }}>
-              {dailyStudy.content}
-            </p>
+          {/* Left Column: Today's Manual */}
+          <div className="glass" style={{ padding: '2rem' }}>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--accent-gold)', paddingBottom: '0.5rem', display: 'inline-block' }}>Today's Study</h2>
+            
+            {loading ? (
+              <p style={{ color: 'var(--text-muted)' }}>Loading today's study manual...</p>
+            ) : study ? (
+              <>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{study.title}</h3>
+                <p style={{ color: 'var(--primary-blue)', fontWeight: 600, fontSize: '0.9rem', marginBottom: '1.5rem' }}>{study.date}</p>
+                
+                <div style={{ background: 'rgba(10,35,66,0.05)', padding: '1rem', borderRadius: 'var(--radius-sm)', borderLeft: '4px solid var(--primary-blue)', marginBottom: '1.5rem' }}>
+                  <strong>Memory Verse:</strong> {study.memoryVerse}
+                </div>
+
+                <div style={{ lineHeight: 1.6, color: 'var(--text-dark)', marginBottom: '2rem' }}>
+                  {study.content.split('\n').map((paragraph, idx) => (
+                    <p key={idx} style={{ marginBottom: '1rem' }}>{paragraph}</p>
+                  ))}
+                </div>
+
+                {study.pdfUrl && (
+                  <a href={study.pdfUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary" style={{ display: 'inline-block', width: '100%', textAlign: 'center' }}>
+                    Download Full PDF Manual
+                  </a>
+                )}
+              </>
+            ) : (
+              <p style={{ color: 'var(--text-muted)' }}>No study manual has been uploaded for today yet.</p>
+            )}
           </div>
 
-          {/* AI Assistant Section */}
-          <div id="ai" className="glass animate-fade-in-up" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', height: '600px' }}>
-            <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '1rem' }}>
-              Bible Study Assistant 🤖
-            </h2>
-            
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {chat.length === 0 ? (
-                <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <p>Ask me anything about the Bible, Jesus Christ, or Christian living.</p>
-                </div>
-              ) : (
-                chat.map((msg, index) => (
-                  <div key={index} style={{ 
-                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                    background: msg.role === 'user' ? 'var(--primary-blue)' : 'rgba(0,0,0,0.05)',
-                    color: msg.role === 'user' ? 'white' : 'inherit',
-                    padding: '1rem',
-                    borderRadius: 'var(--radius-md)',
-                    maxWidth: '80%'
-                  }}>
-                    {msg.content}
-                  </div>
-                ))
-              )}
-              {loading && (
-                <div style={{ alignSelf: 'flex-start', background: 'rgba(0,0,0,0.05)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-                  Thinking...
-                </div>
-              )}
+          {/* Right Column: AI Assistant */}
+          <div className="glass" style={{ padding: '0', display: 'flex', flexDirection: 'column', height: '600px', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--primary-blue)', color: 'white', padding: '1.5rem', textAlign: 'center' }}>
+              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Bethel AI Assistant</h2>
+              <p style={{ fontSize: '0.85rem', opacity: 0.8, marginTop: '0.25rem' }}>Ask questions to dive deeper into the Word</p>
             </div>
 
-            <form onSubmit={handleSearch} style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ flex: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {chatHistory.length === 0 && (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', marginTop: '2rem', fontSize: '0.9rem' }}>
+                  Hello! I am your AI Bible Assistant. How can I help you understand today's study or any part of the Bible?
+                </div>
+              )}
+              
+              {chatHistory.map((msg, idx) => (
+                <div key={idx} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', background: msg.role === 'user' ? 'var(--primary-blue)' : 'rgba(0,0,0,0.05)', color: msg.role === 'user' ? 'white' : 'var(--text-dark)', padding: '1rem', borderRadius: 'var(--radius-md)', maxWidth: '85%', lineHeight: 1.5, fontSize: '0.95rem' }}>
+                  {msg.text}
+                </div>
+              ))}
+              
+              {isTyping && (
+                <div style={{ alignSelf: 'flex-start', background: 'rgba(0,0,0,0.05)', padding: '1rem', borderRadius: 'var(--radius-md)', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  Searching the scriptures...
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            <form onSubmit={handleAskAI} style={{ padding: '1rem', borderTop: '1px solid rgba(0,0,0,0.1)', display: 'flex', gap: '0.5rem', background: 'rgba(255,255,255,0.5)' }}>
               <input 
                 type="text" 
                 className="input-field" 
-                placeholder="E.g., What does the Bible say about patience?" 
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                style={{ flex: 1, margin: 0 }} 
+                placeholder="Ask a biblical question..."
+                value={queryText}
+                onChange={(e) => setQueryText(e.target.value)}
+                disabled={isTyping}
               />
-              <button type="submit" className="btn btn-primary" disabled={loading}>Ask</button>
+              <button type="submit" className="btn btn-primary" disabled={isTyping || !queryText.trim()}>Send</button>
             </form>
           </div>
 
