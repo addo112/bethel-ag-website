@@ -16,14 +16,15 @@ export default function RootLayout({
       <body>
         <nav className="glass-nav" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '1rem 0' }}>
           <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {/* Placeholder for Assembly of God Logo */}
-              <div style={{ width: '40px', height: '40px', background: 'var(--primary-blue)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
-                AG
-              </div>
-              <div>
-                <h1 style={{ fontSize: '1.25rem', margin: 0 }}>Bethel Assembly</h1>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Ayigya</span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+              <img src="/logo.png" alt="Assemblies of God Logo" style={{ width: '55px', height: 'auto', dropShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+              <div style={{ textAlign: 'center', lineHeight: 1.1 }}>
+                <h1 style={{ fontSize: '0.95rem', margin: 0, fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                  Bethel Assembly of God
+                </h1>
+                <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' }}>
+                  Ayigya
+                </span>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '1.5rem', fontWeight: 500 }}>
