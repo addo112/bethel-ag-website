@@ -73,7 +73,7 @@ export default function Study() {
         
         <header style={{ textAlign: 'center', marginBottom: '3rem' }}>
           <h1 className="hero-title" style={{ fontSize: '2.5rem' }}>Daily Bible Study</h1>
-          <p className="hero-subtitle">Grow daily through the Word of God and our AI Assistant</p>
+          <p className="hero-subtitle">Grow daily through the Word of God</p>
         </header>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
