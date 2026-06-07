@@ -17,7 +17,7 @@ export default function RootLayout({
         <nav className="glass-nav" style={{ position: 'sticky', top: 0, zIndex: 50, padding: '1rem 0' }}>
           <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
-              <img src="/logo.png" alt="Assemblies of God Logo" style={{ width: '55px', height: 'auto', dropShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+              <img src="/logo.png" alt="Assemblies of God Logo" style={{ width: '55px', height: 'auto', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }} />
               <div style={{ textAlign: 'center', lineHeight: 1.1 }}>
                 <h1 style={{ fontSize: '0.95rem', margin: 0, fontWeight: 800, color: 'var(--primary-blue)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                   Bethel Assembly of God
